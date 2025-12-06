@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "Node16",
+        "moduleResolution": "Node16",
+        "outDir": "./dist", // Output directory for compiled JS
+        "rootDir": ".", // Source directory
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true, // For require("./idl.json")
+        "typeRoots": [
+            "./types",
+            "./node_modules/@types"
+        ],
+    },
+    "include": [
+        "server.ts"
+    ], // Files to compile
+    "exclude": [
+        "node_modules"
+    ]
+}

@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Protocol - AI Avatars on Avalanche</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: #c4b5fd;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+        }
+
+        .hero h2 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #c4b5fd 0%, #fbcfe8 50%, #a5f3fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: #c4b5fd;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #c4b5fd;
+        }
+
+        /* Features */
+        .section {
+            padding: 4rem 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(167, 139, 250, 0.5);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 24px;
+        }
+
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            font-size: 0.875rem;
+            color: #c4b5fd;
+        }
+
+        /* API Demo */
+        .api-demo {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+        }
+
+        .api-left,
+        .api-right {
+            padding: 2rem;
+        }
+
+        .api-left {
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .api-right {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .api-section-title {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .api-call {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .api-call:hover {
+            border-color: rgba(167, 139, 250, 0.5);
+        }
+
+        .api-call-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .api-method {
+            padding: 4px 8px;
+            background: rgba(139, 92, 246, 0.2);
+            color: #c4b5fd;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            margin-right: 8px;
+        }
+
+        .api-endpoint {
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #c4b5fd;
+        }
+
+        .api-price {
+            font-size: 0.75rem;
+            color: #86efac;
+            font-weight: 600;
+        }
+
+        .api-body {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .api-body pre {
+            font-family: monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            color: #e0e7ff;
+        }
+
+        .api-try-btn {
+            width: 100%;
+        }
+
+        .response-container {
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .response-empty {
+            text-align: center;
+            color: #c4b5fd;
+        }
+
+        .response-empty-icon {
+            font-size: 4rem;
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        .response-content {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .response-content pre {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #86efac;
+        }
+
+        /* Architecture */
+        .architecture {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        .architecture-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .architecture-step {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: #8b5cf6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-number.pink {
+            background: #ec4899;
+        }
+
+        .step-number.blue {
+            background: #3b82f6;
+        }
+
+        .step-number.green {
+            background: #10b981;
+        }
+
+        .step-content h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .step-content p {
+            font-size: 0.875rem;
+            color: #c4b5fd;
+        }
+
+        /* CTA */
+        .cta {
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .cta h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta p {
+            font-size: 1.25rem;
+            color: #fce7f3;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-white {
+            background: white;
+            color: #8b5cf6;
+        }
+
+        .btn-white:hover {
+            background: #f5f3ff;
+        }
+
+        .btn-transparent {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-transparent:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            color: #c4b5fd;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .api-demo {
+                grid-template-columns: 1fr;
+            }
+
+            .api-left {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .hero h2 {
+                font-size: 2rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">⚡</div>
+                    <div class="logo-text">
+                        <h1>Aura Protocol</h1>
+                        <p>Dynamic AI Avatars for Web3</p>
+                    </div>
+                </div>
+                <div class="nav-buttons">
+                    <a href="/docs" class="btn btn-secondary">Docs</a>
+                    <a href="https://github.com/aura-protocol" class="btn btn-primary">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <h2>Build & Monetize AI Avatars on Avalanche</h2>
+            <p>
+                Aura provides infrastructure for creating dynamic AI personalities with verifiable on-chain state
+                and automated micropayments via x402. Built for scalability, designed for innovation.
+            </p>
+            <div class="hero-buttons">
+                <a href="/docs" class="btn btn-primary">View API Docs</a>
+                <a href="https://github.com/aura-protocol" class="btn btn-secondary">View GitHub</a>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #c4b5fd;">&lt;200ms</div>
+                    <div class="stat-label">Transaction Finality</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #fbcfe8;">70%</div>
+                    <div class="stat-label">Creator Revenue Share</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #a5f3fc;">$0.001</div>
+                    <div class="stat-label">Per Interaction</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #86efac;">100%</div>
+                    <div class="stat-label">Uptime SLA</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section">
+        <div class="container">
+            <h3 class="section-title">Core Features</h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">Sub-Second Finality</div>
+                    <div class="feature-desc">Avalanche C-Chain ensures instant transaction confirmation</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <div class="feature-title">x402 Micropayments</div>
+                    <div class="feature-desc">Pay-per-interaction with automated revenue splits</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <div class="feature-title">Dynamic AI Avatars</div>
+                    <div class="feature-desc">GPT-4 powered personalities with persistent memory</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-title">Verifiable State</div>
+                    <div class="feature-desc">On-chain state management with cryptographic proofs</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API Demo -->
+    <section class="section">
+        <div class="container">
+            <h3 class="section-title">Interactive API Demo</h3>
+            <div class="api-demo">
+                <div class="api-left">
+                    <h4 class="api-section-title">📡 API Endpoints</h4>
+
+                    <div class="api-call" onclick="tryApiCall('create-avatar')">
+                        <div class="api-call-header">
+                            <div>
+                                <span class="api-method">POST</span>
+                                <span class="api-endpoint">/create-avatar</span>
+                            </div>
+                            <span class="api-price">$0.01</span>
+                        </div>
+                        <div class="api-body">
+                            <pre>{ "templateId": 1 }</pre>
+                        </div>
+                        <button class="btn btn-primary api-try-btn">Try it →</button>
+                    </div>
+
+                    <div class="api-call" onclick="tryApiCall('update-avatar')">
+                        <div class="api-call-header">
+                            <div>
+                                <span class="api-method">POST</span>
+                                <span class="api-endpoint">/update-avatar</span>
+                            </div>
+                            <span class="api-price">$0.001</span>
+                        </div>
+                        <div class="api-body">
+                            <pre>{
+  "avatarId": 1,
+  "action": "Player asks about quest"
+}</pre>
+                        </div>
+                        <button class="btn btn-primary api-try-btn">Try it →</button>
+                    </div>
+
+                    <div class="api-call" onclick="tryApiCall('get-state')">
+                        <div class="api-call-header">
+                            <div>
+                                <span class="api-method">GET</span>
+                                <span class="api-endpoint">/avatar-state</span>
+                            </div>
+                            <span class="api-price">Free</span>
+                        </div>
+                        <div class="api-body">
+                            <pre>?avatarId=1&userAddress=0x...</pre>
+                        </div>
+                        <button class="btn btn-primary api-try-btn">Try it →</button>
+                    </div>
+                </div>
+
+                <div class="api-right">
+                    <h4 class="api-section-title">📊 Response</h4>
+                    <div id="response-container" class="response-container">
+                        <div class="response-empty">
+                            <div class="response-empty-icon">{ }</div>
+                            <p>Select an API call to see the response</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="section">
+        <div class="container">
+            <h3 class="section-title">Architecture</h3>
+            <div class="architecture">
+                <div class="architecture-steps">
+                    <div class="architecture-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Client Request with x402 Payment</h4>
+                            <p>Developer sends API request with x402 payment header (AVAX micropayment)</p>
+                        </div>
+                    </div>
+                    <div class="architecture-step">
+                        <div class="step-number pink">2</div>
+                        <div class="step-content">
+                            <h4>Payment Verification & Routing</h4>
+                            <p>x402 middleware verifies payment, routes 70% to creator, 30% to platform</p>
+                        </div>
+                    </div>
+                    <div class="architecture-step">
+                        <div class="step-number blue">3</div>
+                        <div class="step-content">
+                            <h4>AI Processing & State Update</h4>
+                            <p>GPT-4 generates response, smart contract updates on-chain state</p>
+                        </div>
+                    </div>
+                    <div class="architecture-step">
+                        <div class="step-number green">4</div>
+                        <div class="step-content">
+                            <h4>Response with Transaction Hash</h4>
+                            <p>API returns AI response + Avalanche C-Chain transaction hash</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section">
+        <div class="container">
+            <div class="cta">
+                <h3>Ready to Build?</h3>
+                <p>Start creating dynamic AI avatars with Aura today. Join the future of Web3 gaming.</p>
+                <div class="cta-buttons">
+                    <a href="/docs" class="btn btn-white">Get Started</a>
+                    <a href="https://github.com/aura-protocol" class="btn btn-transparent">Read Documentation</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div style="font-size: 0.875rem; color: #c4b5fd;">
+                    © 2025 Aura Protocol. Built for Avalanche.
+                </div>
+                <div class="footer-links">
+                    <a href="/docs">Documentation</a>
+                    <a href="https://github.com/cenwadike/aura">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function tryApiCall(type) {
+            const responseContainer = document.getElementById('response-container');
+
+            // Show loading
+            responseContainer.innerHTML = '<div class="response-empty"><div class="response-empty-icon">⏳</div><p>Processing request...</p></div>';
+
+            // Simulate API call
+            setTimeout(() => {
+                let mockResponse = {};
+
+                if (type === 'create-avatar') {
+                    mockResponse = {
+                        success: true,
+                        avatarId: 1,
+                        sessionId: 1,
+                        templateId: 1,
+                        transaction: '0x' + Math.random().toString(16).slice(2, 66),
+                        blockNumber: Math.floor(Math.random() * 1000000) + 12000000,
+                        payment: {
+                            charged: '$0.01',
+                            creatorShare: '70%',
+                            platformFee: '30%'
+                        }
+                    };
+                } else if (type === 'update-avatar') {
+                    mockResponse = {
+                        dialogue: 'The ancient quest speaks of a powerful artifact hidden in the northern mountains. Many have tried, few have returned.',
+                        behavior: 'mysterious, cautious',
+                        transaction: '0x' + Math.random().toString(16).slice(2, 66),
+                        blockNumber: Math.floor(Math.random() * 1000000) + 12000000,
+                        payment: {
+                            charged: '$0.001',
+                            creatorShare: '70%',
+                            platformFee: '30%'
+                        }
+                    };
+                } else {
+                    mockResponse = {
+                        avatarId: 1,
+                        sessionId: 1,
+                        templateId: 1,
+                        dialogue: 'The ancient quest speaks of a powerful artifact...',
+                        behavior: 'mysterious, cautious',
+                        lastInteraction: Math.floor(Date.now() / 1000),
+                        memory: 'Player_asks_about_quest@' + Math.floor(Date.now() / 1000),
+                        creator: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'
+                    };
+                }
+
+                responseContainer.innerHTML = '<div class="response-content"><pre>' +
+                    JSON.stringify(mockResponse, null, 2) +
+                    '</pre></div>';
+            }, 1500);
+        }
+    </script>
+</body>
+
+</html>
