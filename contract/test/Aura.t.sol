@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "../src/Aura.sol";
+import {Test} from "forge-std/Test.sol";
+import {Aura} from "../src/Aura.sol";
 
 contract AuraTest is Test {
     Aura public aura;
@@ -150,10 +150,10 @@ contract AuraTest is Test {
         // User1 creates avatars
         vm.startPrank(user1);
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
-        (uint256 avatar1_user1, uint256 session1_user1) = aura.initializeAvatar(
+        (uint256 avatar1User1, uint256 session1User1) = aura.initializeAvatar(
             template1
         );
-        (uint256 avatar2_user1, uint256 session2_user1) = aura.initializeAvatar(
+        (uint256 avatar2User1, uint256 session2User1) = aura.initializeAvatar(
             template1
         );
         vm.stopPrank();
@@ -161,25 +161,25 @@ contract AuraTest is Test {
         // User2 creates avatars - should start at 1
         vm.startPrank(user2);
         uint256 template2 = aura.createTemplate("Mage", "Magical");
-        (uint256 avatar1_user2, uint256 session1_user2) = aura.initializeAvatar(
+        (uint256 avatar1User2, uint256 session1User2) = aura.initializeAvatar(
             template2
         );
-        (uint256 avatar2_user2, uint256 session2_user2) = aura.initializeAvatar(
+        (uint256 avatar2User2, uint256 session2User2) = aura.initializeAvatar(
             template2
         );
         vm.stopPrank();
 
         // User1's avatars should be 1, 2
-        assertEq(avatar1_user1, 1);
-        assertEq(avatar2_user1, 2);
-        assertEq(session1_user1, 1);
-        assertEq(session2_user1, 2);
+        assertEq(avatar1User1, 1);
+        assertEq(avatar2User1, 2);
+        assertEq(session1User1, 1);
+        assertEq(session2User1, 2);
 
         // User2's avatars should also be 1, 2 (scoped to user2)
-        assertEq(avatar1_user2, 1);
-        assertEq(avatar2_user2, 2);
-        assertEq(session1_user2, 1);
-        assertEq(session2_user2, 2);
+        assertEq(avatar1User2, 1);
+        assertEq(avatar2User2, 2);
+        assertEq(session1User2, 1);
+        assertEq(session2User2, 2);
 
         // Verify counts
         assertEq(aura.getUserAvatarCount(user1), 2);
@@ -243,7 +243,7 @@ contract AuraTest is Test {
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
 
         vm.prank(user1);
-        (uint256 avatar1_user1, uint256 session1_user1) = aura.initializeAvatar(
+        (uint256 avatar1User1, uint256 session1User1) = aura.initializeAvatar(
             template1
         );
 
@@ -252,20 +252,20 @@ contract AuraTest is Test {
         uint256 template2 = aura.createTemplate("Mage", "Magical");
 
         vm.prank(user2);
-        (uint256 avatar1_user2, uint256 session1_user2) = aura.initializeAvatar(
+        (uint256 avatar1User2, uint256 session1User2) = aura.initializeAvatar(
             template2
         );
 
         // Both session IDs are 1, but scoped to different users
-        assertEq(session1_user1, 1);
-        assertEq(session1_user2, 1);
+        assertEq(session1User1, 1);
+        assertEq(session1User2, 1);
 
         // Lookups should return different avatars
         uint256 foundAvatar1 = aura.getAvatarBySession(user1, 1);
         uint256 foundAvatar2 = aura.getAvatarBySession(user2, 1);
 
-        assertEq(foundAvatar1, avatar1_user1);
-        assertEq(foundAvatar2, avatar1_user2);
+        assertEq(foundAvatar1, avatar1User1);
+        assertEq(foundAvatar2, avatar1User2);
     }
 
     function test_InitializeAvatar_MultipleSessions_IndependentAvatars()
@@ -372,20 +372,20 @@ contract AuraTest is Test {
         // User1 creates avatar (ID 1)
         vm.startPrank(user1);
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
-        (uint256 avatar1_user1, ) = aura.initializeAvatar(template1);
-        aura.updateAvatar(avatar1_user1, "slash", "User1 attacks", "attacking");
+        (uint256 avatar1User1, ) = aura.initializeAvatar(template1);
+        aura.updateAvatar(avatar1User1, "slash", "User1 attacks", "attacking");
         vm.stopPrank();
 
         // User2 creates avatar (also ID 1, scoped to user2)
         vm.startPrank(user2);
         uint256 template2 = aura.createTemplate("Mage", "Magical");
-        (uint256 avatar1_user2, ) = aura.initializeAvatar(template2);
-        aura.updateAvatar(avatar1_user2, "cast", "User2 casts", "casting");
+        (uint256 avatar1User2, ) = aura.initializeAvatar(template2);
+        aura.updateAvatar(avatar1User2, "cast", "User2 casts", "casting");
         vm.stopPrank();
 
         // Both have avatarId = 1, but different states
-        assertEq(avatar1_user1, 1);
-        assertEq(avatar1_user2, 1);
+        assertEq(avatar1User1, 1);
+        assertEq(avatar1User2, 1);
 
         Aura.State memory state1 = aura.getState(user1, 1);
         Aura.State memory state2 = aura.getState(user2, 1);
