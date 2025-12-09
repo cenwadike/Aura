@@ -677,5 +677,4 @@ app.listen(PORT, () => {
     logger.info(`💰 Revenue: 70% creators → paid in AVAX`);
     logger.info(`🎯 Payout threshold: 0.1 AVAX`);
     logger.info(`🔗 X402: Thirdweb facilitator`);
-    logger.info(`🌐 Landing page: http://localhost:${PORT}/`);
 });
