@@ -48,7 +48,8 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Aura.s.sol:AuraScript --rpc-url RPC_URL --private-key PRIVATE_KEY
+source .env
+$ forge script script/Aura.s.sol:AuraScript --rpc-url $AVALANCHE_RPC_URL$ --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### Cast

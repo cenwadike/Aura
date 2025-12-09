@@ -120,6 +120,7 @@ contract AuraTest is Test {
         emit AvatarInitialized(1, 1, user1, templateId);
 
         (uint256 avatarId, uint256 sessionId) = aura.initializeAvatar(
+            user1,
             templateId
         );
 
@@ -151,9 +152,11 @@ contract AuraTest is Test {
         vm.startPrank(user1);
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
         (uint256 avatar1User1, uint256 session1User1) = aura.initializeAvatar(
+            user1,
             template1
         );
         (uint256 avatar2User1, uint256 session2User1) = aura.initializeAvatar(
+            user1,
             template1
         );
         vm.stopPrank();
@@ -162,9 +165,11 @@ contract AuraTest is Test {
         vm.startPrank(user2);
         uint256 template2 = aura.createTemplate("Mage", "Magical");
         (uint256 avatar1User2, uint256 session1User2) = aura.initializeAvatar(
+            user2,
             template2
         );
         (uint256 avatar2User2, uint256 session2User2) = aura.initializeAvatar(
+            user2,
             template2
         );
         vm.stopPrank();
@@ -193,9 +198,18 @@ contract AuraTest is Test {
 
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
 
-        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(templateId);
-        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(templateId);
-        (uint256 avatar3, uint256 session3) = aura.initializeAvatar(templateId);
+        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(
+            user1,
+            templateId
+        );
+        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(
+            user1,
+            templateId
+        );
+        (uint256 avatar3, uint256 session3) = aura.initializeAvatar(
+            user1,
+            templateId
+        );
 
         assertEq(avatar1, 1);
         assertEq(avatar2, 2);
@@ -218,7 +232,7 @@ contract AuraTest is Test {
         vm.startPrank(user1);
 
         vm.expectRevert(Aura.TemplateNotFound.selector);
-        aura.initializeAvatar(999);
+        aura.initializeAvatar(user1, 999);
 
         vm.stopPrank();
     }
@@ -228,6 +242,7 @@ contract AuraTest is Test {
 
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
         (uint256 avatarId, uint256 sessionId) = aura.initializeAvatar(
+            user1,
             templateId
         );
 
@@ -244,6 +259,7 @@ contract AuraTest is Test {
 
         vm.prank(user1);
         (uint256 avatar1User1, uint256 session1User1) = aura.initializeAvatar(
+            user1,
             template1
         );
 
@@ -253,6 +269,7 @@ contract AuraTest is Test {
 
         vm.prank(user2);
         (uint256 avatar1User2, uint256 session1User2) = aura.initializeAvatar(
+            user2,
             template2
         );
 
@@ -276,8 +293,14 @@ contract AuraTest is Test {
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
         uint256 template2 = aura.createTemplate("Mage", "Magical");
 
-        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(template1);
-        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(template2);
+        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(
+            user1,
+            template1
+        );
+        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(
+            user1,
+            template2
+        );
 
         Aura.State memory state1 = aura.getState(user1, avatar1);
         Aura.State memory state2 = aura.getState(user1, avatar2);
@@ -298,6 +321,7 @@ contract AuraTest is Test {
 
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
         (uint256 avatarId, uint256 sessionId) = aura.initializeAvatar(
+            user1,
             templateId
         );
 
@@ -311,7 +335,13 @@ contract AuraTest is Test {
             "combat_stance"
         );
 
-        aura.updateAvatar(avatarId, "attack", "I strike!", "combat_stance");
+        aura.updateAvatar(
+            user1,
+            avatarId,
+            "attack",
+            "I strike!",
+            "combat_stance"
+        );
 
         Aura.State memory state = aura.getState(user1, avatarId);
         assertEq(state.dialogue, "I strike!");
@@ -328,11 +358,11 @@ contract AuraTest is Test {
         vm.startPrank(user1);
 
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
-        (uint256 avatarId, ) = aura.initializeAvatar(templateId);
+        (uint256 avatarId, ) = aura.initializeAvatar(user1, templateId);
 
-        aura.updateAvatar(avatarId, "attack", "I strike!", "combat");
-        aura.updateAvatar(avatarId, "defend", "I block!", "defensive");
-        aura.updateAvatar(avatarId, "heal", "I rest", "resting");
+        aura.updateAvatar(user1, avatarId, "attack", "I strike!", "combat");
+        aura.updateAvatar(user1, avatarId, "defend", "I block!", "defensive");
+        aura.updateAvatar(user1, avatarId, "heal", "I rest", "resting");
 
         Aura.Memory memory mem = aura.getMemory(user1, avatarId);
         assertTrue(contains(mem.data, "attack"));
@@ -350,7 +380,7 @@ contract AuraTest is Test {
         vm.startPrank(user1);
 
         vm.expectRevert(Aura.AvatarNotFound.selector);
-        aura.updateAvatar(999, "action", "dialogue", "behavior");
+        aura.updateAvatar(user1, 999, "action", "dialogue", "behavior");
 
         vm.stopPrank();
     }
@@ -360,27 +390,39 @@ contract AuraTest is Test {
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
 
         vm.prank(user1);
-        (uint256 avatarId, ) = aura.initializeAvatar(templateId);
+        (uint256 avatarId, ) = aura.initializeAvatar(user1, templateId);
 
         // User2 tries to update user1's avatar with ID 1
         vm.prank(user2);
         vm.expectRevert(Aura.AvatarNotFound.selector);
-        aura.updateAvatar(avatarId, "action", "dialogue", "behavior");
+        aura.updateAvatar(user2, avatarId, "action", "dialogue", "behavior");
     }
 
     function test_UpdateAvatar_SameLocalId_DifferentUsers() public {
         // User1 creates avatar (ID 1)
         vm.startPrank(user1);
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
-        (uint256 avatar1User1, ) = aura.initializeAvatar(template1);
-        aura.updateAvatar(avatar1User1, "slash", "User1 attacks", "attacking");
+        (uint256 avatar1User1, ) = aura.initializeAvatar(user1, template1);
+        aura.updateAvatar(
+            user1,
+            avatar1User1,
+            "slash",
+            "User1 attacks",
+            "attacking"
+        );
         vm.stopPrank();
 
         // User2 creates avatar (also ID 1, scoped to user2)
         vm.startPrank(user2);
         uint256 template2 = aura.createTemplate("Mage", "Magical");
-        (uint256 avatar1User2, ) = aura.initializeAvatar(template2);
-        aura.updateAvatar(avatar1User2, "cast", "User2 casts", "casting");
+        (uint256 avatar1User2, ) = aura.initializeAvatar(user2, template2);
+        aura.updateAvatar(
+            user2,
+            avatar1User2,
+            "cast",
+            "User2 casts",
+            "casting"
+        );
         vm.stopPrank();
 
         // Both have avatarId = 1, but different states
@@ -418,8 +460,8 @@ contract AuraTest is Test {
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
         uint256 template2 = aura.createTemplate("Mage", "Magic");
 
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template2);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template2);
 
         uint256[] memory avatars = aura.getUserAvatars(user1);
         assertEq(avatars.length, 2);
@@ -434,8 +476,8 @@ contract AuraTest is Test {
 
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
 
-        aura.initializeAvatar(templateId);
-        aura.initializeAvatar(templateId);
+        aura.initializeAvatar(user1, templateId);
+        aura.initializeAvatar(user1, templateId);
 
         uint256[] memory sessions = aura.getUserSessions(user1);
         assertEq(sessions.length, 2);
@@ -450,9 +492,9 @@ contract AuraTest is Test {
 
         uint256 templateId = aura.createTemplate("Warrior", "Aggressive");
 
-        aura.initializeAvatar(templateId);
-        aura.initializeAvatar(templateId);
-        aura.initializeAvatar(templateId);
+        aura.initializeAvatar(user1, templateId);
+        aura.initializeAvatar(user1, templateId);
+        aura.initializeAvatar(user1, templateId);
 
         assertEq(aura.getUserAvatarCount(user1), 3);
         assertEq(aura.getUserSessionCount(user1), 3);
@@ -498,6 +540,7 @@ contract AuraTest is Test {
 
         // Initialize avatar (creates session automatically)
         (uint256 avatarId, uint256 sessionId) = aura.initializeAvatar(
+            user1,
             templateId
         );
 
@@ -506,6 +549,7 @@ contract AuraTest is Test {
 
         // Play through session
         aura.updateAvatar(
+            user1,
             avatarId,
             "explore_forest",
             "I venture into the dark woods",
@@ -513,6 +557,7 @@ contract AuraTest is Test {
         );
 
         aura.updateAvatar(
+            user1,
             avatarId,
             "fight_goblin",
             "I draw my sword!",
@@ -520,6 +565,7 @@ contract AuraTest is Test {
         );
 
         aura.updateAvatar(
+            user1,
             avatarId,
             "loot_treasure",
             "I found gold!",
@@ -543,13 +589,19 @@ contract AuraTest is Test {
         // User1 creates template and avatar
         vm.startPrank(user1);
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
-        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(template1);
+        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(
+            user1,
+            template1
+        );
         vm.stopPrank();
 
         // User2 creates template and avatar
         vm.startPrank(user2);
         uint256 template2 = aura.createTemplate("Mage", "Magical");
-        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(template2);
+        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(
+            user2,
+            template2
+        );
         vm.stopPrank();
 
         // Templates are global (1, 2)
@@ -577,12 +629,18 @@ contract AuraTest is Test {
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
         uint256 template2 = aura.createTemplate("Mage", "Magical");
 
-        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(template1);
-        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(template2);
+        (uint256 avatar1, uint256 session1) = aura.initializeAvatar(
+            user1,
+            template1
+        );
+        (uint256 avatar2, uint256 session2) = aura.initializeAvatar(
+            user1,
+            template2
+        );
 
         // Update both avatars independently
-        aura.updateAvatar(avatar1, "slash", "Take this!", "attacking");
-        aura.updateAvatar(avatar2, "cast_spell", "Fireball!", "casting");
+        aura.updateAvatar(user1, avatar1, "slash", "Take this!", "attacking");
+        aura.updateAvatar(user1, avatar2, "cast_spell", "Fireball!", "casting");
 
         Aura.State memory state1 = aura.getState(user1, avatar1);
         Aura.State memory state2 = aura.getState(user1, avatar2);
@@ -607,11 +665,11 @@ contract AuraTest is Test {
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
 
         // Create 5 avatars
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template1);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template1);
 
         // Can iterate through avatars 1-5 for user1
         for (uint256 i = 1; i <= 5; i++) {
@@ -627,16 +685,16 @@ contract AuraTest is Test {
         // User1 creates 3 avatars
         vm.startPrank(user1);
         uint256 template1 = aura.createTemplate("Warrior", "Aggressive");
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template1);
-        aura.initializeAvatar(template1);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template1);
+        aura.initializeAvatar(user1, template1);
         vm.stopPrank();
 
         // User2 creates 2 avatars
         vm.startPrank(user2);
         uint256 template2 = aura.createTemplate("Mage", "Magical");
-        aura.initializeAvatar(template2);
-        aura.initializeAvatar(template2);
+        aura.initializeAvatar(user2, template2);
+        aura.initializeAvatar(user2, template2);
         vm.stopPrank();
 
         // Can iterate user1's avatars (1-3)

@@ -1,26 +1,27 @@
-# Use Alpine-based Node.js for smaller image size
 FROM node:25-alpine
 
-# Install build dependencies for native modules
+# Install build tools needed for native modules and TypeScript compilation
 RUN apk add --no-cache python3 make g++
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files first so npm ci can use Docker layer cache
+COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --production=false
 
-# Copy application code
+# Copy source and config files
 COPY . .
 
-# Create logs directory
+# Compile TypeScript to JavaScript
+RUN npx tsc
+
+# Create logs folder
 RUN mkdir -p logs
 
-# Expose port
+# Expose port 
 EXPOSE 8000
 
-# Start the server
+# Run the compiled JS entrypoint
 CMD ["node", "dist/server.js"]

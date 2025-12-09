@@ -86,8 +86,8 @@ const BASE_URL = process.env.PUBLIC_API_URL || "http://localhost:8000";
 // Smart Contract ABI
 const CONTRACT_ABI = [
     "function createTemplate(string name, string baseBehavior) external returns (uint256)",
-    "function initializeAvatar(uint256 templateId) external returns (uint256 avatarId, uint256 sessionId)",
-    "function updateAvatar(uint256 avatarId, string action, string dialogue, string behavior) external returns (uint256)",
+    "function initializeAvatar(address forUser, uint256 templateId) external returns (uint256 avatarId, uint256 sessionId)",
+    "function updateAvatar(address forUser, uint256 avatarId, string action, string dialogue, string behavior) external returns (uint256)",
     "function getTemplate(uint256 templateId) external view returns (tuple(address creator, uint256 templateId, string name, string baseBehavior, uint256 createdAt, bool exists))",
     "function getState(address user, uint256 avatarId) external view returns (tuple(address creator, uint256 avatarId, uint256 sessionId, uint256 templateId, string dialogue, string behavior, uint256 lastInteraction, bool exists))",
     "function getMemory(address user, uint256 avatarId) external view returns (tuple(string data, uint256 lastUpdated))",
@@ -125,8 +125,8 @@ const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, USDC_ABI, server
 
 interface CreatorBalance {
     address: string;
-    pendingWei: bigint; // Note: Actually USDC units (6 decimals), variable name kept for compatibility
-    totalEarnedWei: bigint; // Note: Actually USDC units (6 decimals), variable name kept for compatibility
+    pendingWei: bigint; // Note: Actually USDC units (6 decimals)
+    totalEarnedWei: bigint; // Note: Actually USDC units (6 decimals)
     lastPayout: number;
 }
 
@@ -438,8 +438,8 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
 
     let tx, receipt;
     try {
-        logger.info(`[CREATE-AVATAR] Calling contract.initializeAvatar(${templateIdNum})`);
-        tx = await contract.initializeAvatar(templateIdNum);
+        logger.info(`[CREATE-AVATAR] Calling contract.initializeAvatar(${userAddress}, ${templateIdNum})`);
+        tx = await contract.initializeAvatar(userAddress, templateIdNum);
         logger.info(`[CREATE-AVATAR] TX sent: ${tx.hash}`);
         receipt = await tx.wait();
         logger.info(`[CREATE-AVATAR] TX confirmed in block ${receipt.blockNumber}`);
@@ -545,7 +545,7 @@ Respond with: dialogue|behavior
     const content = completion.choices[0]?.message?.content || "Hello.|neutral";
     const [dialogue = "Hello.", behavior = "neutral"] = content.split("|");
 
-    const tx = await contract.updateAvatar(avatarIdNum, action, dialogue.trim(), behavior.trim());
+    const tx = await contract.updateAvatar(userAddress, avatarIdNum, action, dialogue.trim(), behavior.trim());
     const receipt = await tx.wait();
 
     // Revenue split

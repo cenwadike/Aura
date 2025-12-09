@@ -144,25 +144,26 @@ contract Aura {
      * @return sessionId The generated session ID (scoped to user)
      */
     function initializeAvatar(
+        address forUser,
         uint256 templateId
     ) external returns (uint256 avatarId, uint256 sessionId) {
         bytes32 templateHash = _keccak(abi.encodePacked(templateId));
         if (!templates[templateHash].exists) revert TemplateNotFound();
 
         // Create new session (user-scoped)
-        sessionId = ++userSessionCount[msg.sender];
-        userSessions[msg.sender].push(sessionId);
+        sessionId = ++userSessionCount[forUser];
+        userSessions[forUser].push(sessionId);
 
         // Create new avatar (user-scoped)
-        avatarId = ++userAvatarCount[msg.sender];
+        avatarId = ++userAvatarCount[forUser];
 
-        bytes32 avatarHash = _keccak(abi.encodePacked(msg.sender, avatarId));
-        bytes32 sessionHash = _keccak(abi.encodePacked(msg.sender, sessionId));
+        bytes32 avatarHash = _keccak(abi.encodePacked(forUser, avatarId));
+        bytes32 sessionHash = _keccak(abi.encodePacked(forUser, sessionId));
 
         memories[avatarHash] = Memory({data: "", lastUpdated: block.timestamp});
 
         states[avatarHash] = State({
-            creator: msg.sender,
+            creator: forUser,
             avatarId: avatarId,
             sessionId: sessionId,
             templateId: templateId,
@@ -172,10 +173,10 @@ contract Aura {
             exists: true
         });
 
-        userAvatars[msg.sender].push(avatarId);
+        userAvatars[forUser].push(avatarId);
         sessionToAvatar[sessionHash] = avatarId;
 
-        emit AvatarInitialized(avatarId, sessionId, msg.sender, templateId);
+        emit AvatarInitialized(avatarId, sessionId, forUser, templateId);
 
         return (avatarId, sessionId);
     }
@@ -188,12 +189,13 @@ contract Aura {
      * @param behavior AI-generated behavior state
      */
     function updateAvatar(
+        address forUser,
         uint256 avatarId,
         string calldata action,
         string calldata dialogue,
         string calldata behavior
     ) external returns (uint256) {
-        bytes32 avatarHash = _keccak(abi.encodePacked(msg.sender, avatarId));
+        bytes32 avatarHash = _keccak(abi.encodePacked(forUser, avatarId));
 
         if (!states[avatarHash].exists) revert AvatarNotFound();
 
@@ -221,7 +223,7 @@ contract Aura {
         emit AvatarUpdated(
             avatarId,
             state.sessionId,
-            msg.sender,
+            forUser,
             action,
             dialogue,
             behavior

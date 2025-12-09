@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for api-withered-bush-3789 on 2025-12-09T01:01:56+01:00
+# fly.toml app configuration file generated for api-icy-bird-6045 on 2025-12-10T00:23:18+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'api-withered-bush-3789'
+app = 'api-icy-bird-6045'
 primary_region = 'lhr'
 
 [build]
@@ -13,7 +13,7 @@ primary_region = 'lhr'
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
   processes = ['app']
 
 [[vm]]
