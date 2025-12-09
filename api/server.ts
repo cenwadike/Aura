@@ -62,7 +62,8 @@ if (!PLATFORM_TREASURY) {
     process.exit(1);
 }
 
-// Thirdweb X402 Setup
+// ==================== Thirdweb X402 Setup (FIXED) ====================
+
 const THIRDWEB_SECRET_KEY = process.env.THIRDWEB_SECRET_KEY!;
 if (!THIRDWEB_SECRET_KEY) {
     logger.error("Missing THIRDWEB_SECRET_KEY");
@@ -73,9 +74,11 @@ const thirdwebClient = createThirdwebClient({
     secretKey: THIRDWEB_SECRET_KEY
 });
 
+// FIX #1: Add waitUntil: "simulated" to facilitator
 const thirdwebX402Facilitator = facilitator({
     client: thirdwebClient,
     serverWalletAddress: PLATFORM_TREASURY,
+    waitUntil: "simulated", // ✅ ADDED
 });
 
 const BASE_URL = process.env.PUBLIC_API_URL || "http://localhost:8000";
@@ -102,16 +105,32 @@ const CONTRACT_ABI = [
 
 const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, serverWallet);
 
+// ==================== USDC Transfer Configuration ====================
+
+const USDC_CONTRACT_ADDRESS = process.env.USDC_CONTRACT_ADDRESS!; // USDC on Avalanche Fuji
+if (!USDC_CONTRACT_ADDRESS) {
+    logger.error("Missing USDC_CONTRACT_ADDRESS");
+    process.exit(1);
+}
+
+const USDC_ABI = [
+    "function transfer(address to, uint256 amount) external returns (bool)",
+    "function balanceOf(address account) external view returns (uint256)",
+    "function decimals() external view returns (uint8)"
+];
+
+const usdcContract = new ethers.Contract(USDC_CONTRACT_ADDRESS, USDC_ABI, serverWallet);
+
 // ==================== Revenue Tracking/Sharing ====================
 
 interface CreatorBalance {
     address: string;
-    pendingWei: bigint;
-    totalEarnedWei: bigint;
+    pendingWei: bigint; // Note: Actually USDC units (6 decimals), variable name kept for compatibility
+    totalEarnedWei: bigint; // Note: Actually USDC units (6 decimals), variable name kept for compatibility
     lastPayout: number;
 }
 
-const PAYOUT_THRESHOLD_WEI = ethers.parseEther("0.1");
+const PAYOUT_THRESHOLD_WEI = ethers.parseUnits("0.1", 6); // 0.1 USDC (6 decimals)
 const creatorBalances = new Map<string, CreatorBalance>();
 
 const addPendingRevenue = (creator: string, weiAmount: bigint) => {
@@ -127,11 +146,11 @@ const addPendingRevenue = (creator: string, weiAmount: bigint) => {
             lastPayout: 0,
         });
     }
-    const pendingAVAX = ethers.formatEther(creatorBalances.get(creator)!.pendingWei);
-    logger.info(`Creator ${creator.slice(0, 8)}... +${ethers.formatEther(weiAmount)} AVAX → ${pendingAVAX} AVAX pending`);
+    const pendingUSDC = ethers.formatEther(creatorBalances.get(creator)!.pendingWei);
+    logger.info(`Creator ${creator.slice(0, 8)}... +${ethers.formatEther(weiAmount)} USDC → ${pendingUSDC} USDC pending`);
 };
 
-// Batch payout logic (unchanged)
+// Batch payout logic
 const BATCH_SIZE = 50;
 const CHUNK_CONCURRENCY = 3;
 const PER_RECIPIENT_CONCURRENCY = 12;
@@ -157,24 +176,18 @@ async function createNonceManager(address: string) {
     };
 }
 
-async function sendSignedTransfer(to: string, value: bigint, nonce: number): Promise<string> {
-    const txRequest: ethers.TransactionRequest = {
-        to,
-        value: ethers.toBigInt(value.toString()),
-        nonce,
-    };
-
+async function sendUSDCTransfer(to: string, amount: bigint, nonce: number): Promise<string> {
     try {
-        const est = await provider.estimateGas({ to, value: ethers.toBigInt(value.toString()) });
-        txRequest.gasLimit = est;
-    } catch {
-        txRequest.gasLimit = ethers.toBigInt(21000);
+        const tx = await usdcContract.transfer(to, amount, {
+            nonce,
+            gasLimit: 100000 // Standard ERC20 transfer gas limit
+        });
+        const receipt = await tx.wait();
+        return receipt.hash;
+    } catch (error: any) {
+        logger.error(`USDC transfer failed to ${to}:`, error);
+        throw error;
     }
-
-    const signed = await serverWallet.signTransaction(txRequest);
-    const sent = await (provider as any).sendTransaction(signed);
-    await sent.wait();
-    return sent.hash;
 }
 
 async function processChunk(
@@ -196,8 +209,8 @@ async function processChunk(
                 for (let attempt = 0; attempt <= PER_RECIPIENT_RETRIES; attempt++) {
                     try {
                         const nonce = nonceManager.getNextNonce();
-                        const txHash = await sendSignedTransfer(it.addr, it.amount, nonce);
-                        logger.info(`Payout SUCCESS ${it.addr} tx=${txHash} nonce=${nonce}`);
+                        const txHash = await sendUSDCTransfer(it.addr, it.amount, nonce);
+                        logger.info(`USDC Payout SUCCESS ${it.addr} amount=${ethers.formatUnits(it.amount, 6)} USDC tx=${txHash} nonce=${nonce}`);
                         const bal = creatorBalances.get(it.addr);
                         if (bal) { bal.pendingWei = 0n; bal.lastPayout = Date.now(); }
                         return true;
@@ -258,21 +271,30 @@ const getTemplateCreator = async (templateId: number): Promise<string> => {
     }
 };
 
-// ==================== Thirdweb X402 Payment Handler ====================
+// ==================== Thirdweb X402 Payment Handler (FIXED) ====================
 
 interface RouteConfig {
     price: string;
     resourceUrl: string;
+    description: string;
+    mimeType?: string;
+    maxTimeoutSeconds?: number;
 }
 
 const routeConfigs: Record<string, RouteConfig> = {
     "POST /create-avatar": {
         price: "$0.01",
-        resourceUrl: `${BASE_URL}/create-avatar`
+        resourceUrl: `${BASE_URL}/create-avatar`,
+        description: "Create a new AI avatar instance",
+        mimeType: "application/json",
+        maxTimeoutSeconds: 60
     },
     "POST /update-avatar": {
         price: "$0.001",
-        resourceUrl: `${BASE_URL}/update-avatar`
+        resourceUrl: `${BASE_URL}/update-avatar`,
+        description: "Update avatar state and get AI response",
+        mimeType: "application/json",
+        maxTimeoutSeconds: 60
     }
 };
 
@@ -289,7 +311,7 @@ const createThirdwebPaymentMiddleware = (): express.RequestHandler => {
             return next();
         }
 
-        // Detect creator BEFORE payment verification
+        // Detect creator for revenue split
         if (req.method === "POST" && req.body?.templateId) {
             try {
                 const templateId = Number(req.body.templateId);
@@ -459,7 +481,7 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
     if (creator && paidWei && paidWei > 0n) {
         const creatorShare = (paidWei * 70n) / 100n;
         addPendingRevenue(creator, creatorShare);
-        logger.info(`[CREATE-AVATAR] Revenue split: ${ethers.formatEther(creatorShare)} AVAX to creator`);
+        logger.info(`[CREATE-AVATAR] Revenue split: ${ethers.formatEther(creatorShare)} USDC to creator`);
     }
 
     const response = {
@@ -528,10 +550,10 @@ Respond with: dialogue|behavior
 
     // Revenue split
     const creator: string | undefined = (req as any).creator;
-    const paidWei: bigint | undefined = (req as any).paymentAmount;
+    const paidUSDC: bigint | undefined = (req as any).paymentAmount;
 
-    if (creator && paidWei && paidWei > 0n) {
-        const creatorShare = (paidWei * 70n) / 100n;
+    if (creator && paidUSDC && paidUSDC > 0n) {
+        const creatorShare = (paidUSDC * 70n) / 100n;
         addPendingRevenue(creator, creatorShare);
     }
 
@@ -652,9 +674,9 @@ app.get("/creator-balance", asyncHandler(async (req, res) => {
 
     res.json({
         address: balance.address,
-        pendingAVAX: ethers.formatEther(balance.pendingWei),
-        totalEarnedAVAX: ethers.formatEther(balance.totalEarnedWei),
-        thresholdAVAX: "0.1",
+        pendingUSDC: ethers.formatEther(balance.pendingWei),
+        totalEarnedUSDC: ethers.formatEther(balance.totalEarnedWei),
+        thresholdUSDC: "0.1",
         thresholdReached: balance.pendingWei >= PAYOUT_THRESHOLD_WEI,
         progressPercent: Number((balance.pendingWei * 100n) / PAYOUT_THRESHOLD_WEI).toFixed(2) + "%",
         lastPayout: balance.lastPayout ? new Date(balance.lastPayout).toISOString() : null,
@@ -674,7 +696,7 @@ app.listen(PORT, () => {
     logger.info(`🚀 Aura AI API v0.1.0 LIVE on port ${PORT}`);
     logger.info(`📡 Network: Avalanche Fuji`);
     logger.info(`📝 Contract: ${CONTRACT_ADDRESS}`);
-    logger.info(`💰 Revenue: 70% creators → paid in AVAX`);
-    logger.info(`🎯 Payout threshold: 0.1 AVAX`);
+    logger.info(`💰 Revenue: 70% creators → paid in USDC`);
+    logger.info(`🎯 Payout threshold: 0.1 USDC`);
     logger.info(`🔗 X402: Thirdweb facilitator`);
 });
