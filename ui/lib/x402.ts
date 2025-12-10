@@ -32,7 +32,7 @@ export async function x402CreateAvatarCall(url: string, templateId: number, addr
   );
 
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = await response.json();
     throw new Error(`API Error (${response.status}): ${errorText}`);
   }
 
@@ -69,7 +69,7 @@ export async function x402UpdateAvatarCall(url: string, avatarId: number, action
 
   // Check if response is ok before parsing
   if (!response.ok) {
-    const errorText = await response.text();
+    const errorText = await response.json();
     throw new Error(`API Error (${response.status}): ${errorText}`);
   }
 
