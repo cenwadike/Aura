@@ -6,6 +6,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract"
 import { useAuraToast } from "@/hooks/use-aura-toast"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { X, Coins } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface CreateTemplateModalProps {
   open: boolean
@@ -17,6 +18,13 @@ export function CreateTemplateModal({ open, onOpenChange }: CreateTemplateModalP
   const [behavior, setBehavior] = useState("")
   const { showToast } = useAuraToast()
   const { isConnected } = useAccount()
+
+  const router = useRouter();
+
+  const handleReload = () => {
+    // Re-fetches data from the server and re-renders the current route's page
+    router.refresh();
+  };
 
   const { writeContract, data: hash, isPending } = useWriteContract()
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -54,6 +62,7 @@ export function CreateTemplateModal({ open, onOpenChange }: CreateTemplateModalP
       setName("")
       setBehavior("")
       onOpenChange(false)
+      handleReload()
     }
   }, [isSuccess, hash, name, showToast, onOpenChange])
 

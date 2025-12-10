@@ -52,7 +52,7 @@ export default function Home() {
       )
 
       if (!res.ok) {
-        const errorText = await res.text()
+        const errorText = await res.json()
         throw new Error(errorText)
       }
 
