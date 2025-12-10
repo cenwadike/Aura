@@ -146,8 +146,8 @@ const addPendingRevenue = (creator: string, weiAmount: bigint) => {
             lastPayout: 0,
         });
     }
-    const pendingUSDC = ethers.formatEther(creatorBalances.get(creator)!.pendingWei);
-    logger.info(`Creator ${creator.slice(0, 8)}... +${ethers.formatEther(weiAmount)} USDC → ${pendingUSDC} USDC pending`);
+    const pendingUSDC = ethers.formatUnits(creatorBalances.get(creator)!.pendingWei, 6);
+    logger.info(`Creator ${creator.slice(0, 8)}... +${ethers.formatUnits(weiAmount, 6)} USDC → ${pendingUSDC} USDC pending`);
 };
 
 // Batch payout logic
@@ -339,13 +339,24 @@ const createThirdwebPaymentMiddleware = (): express.RequestHandler => {
             logger.info(`[PAYMENT] Settlement result: ${result.status}`);
 
             if (result.status === 200) {
-                // Payment successful - store payment info for revenue split
                 try {
                     const paymentHeader = req.headers["x-payment"];
                     if (paymentHeader && typeof paymentHeader === "string") {
-                        const paymentData = JSON.parse(paymentHeader);
+                        // Decode base64 if needed
+                        let paymentDataStr = paymentHeader;
+                        if (paymentHeader.startsWith('eyJ')) { // Common base64 JWT/JSON prefix
+                            try {
+                                paymentDataStr = Buffer.from(paymentHeader, 'base64').toString('utf-8');
+                                logger.info(`[PAYMENT] Decoded base64 payment header`);
+                            } catch (decodeErr) {
+                                logger.warn(`[PAYMENT] Base64 decode failed, trying as raw JSON`);
+                            }
+                        }
+
+                        const paymentData = JSON.parse(paymentDataStr);
                         (req as any).paymentAmount = BigInt(paymentData.wei || paymentData.amount || 0);
-                        logger.info(`[PAYMENT] Payment amount: ${ethers.formatEther((req as any).paymentAmount)} AVAX`);
+                        logger.info(`[PAYMENT] Payment amount: ${ethers.formatUnits((req as any).paymentAmount, 6)} USDC`);
+                        logger.info(`[PAYMENT] Payment data:`, JSON.stringify(paymentData, null, 2));
                     }
                 } catch (err) {
                     logger.warn(`[PAYMENT] Failed to parse payment data:`, err);
@@ -481,7 +492,7 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
     if (creator && paidWei && paidWei > 0n) {
         const creatorShare = (paidWei * 70n) / 100n;
         addPendingRevenue(creator, creatorShare);
-        logger.info(`[CREATE-AVATAR] Revenue split: ${ethers.formatEther(creatorShare)} USDC to creator`);
+        logger.info(`[CREATE-AVATAR] Revenue split: ${ethers.formatUnits(creatorShare, 6)} USDC to creator`);
     }
 
     const response = {
@@ -494,7 +505,7 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
     };
 
     logger.info(`[CREATE-AVATAR] SUCCESS:`, response);
-    res.json(response);
+    res.status(200).json(response);
 }));
 
 app.post("/update-avatar", asyncHandler(async (req, res) => {
@@ -525,27 +536,78 @@ app.post("/update-avatar", asyncHandler(async (req, res) => {
     let templateBehavior = "neutral";
     try {
         const template = await contract.getTemplate(templateId);
-        templateBehavior = template.baseBehavior || "neutral";
+        templateBehavior = template.baseBehavior;
     } catch { }
 
+    // Improved prompt with clearer instructions
     const prompt = `You are an AI avatar with personality: ${templateBehavior}
 Memory: ${memoryData || "none"}
 Player action: ${action}
 
-Respond with: dialogue|behavior
-- dialogue: What the avatar says (1-2 sentences)
-- behavior: Current emotional state (one word: happy, sad, angry, neutral, excited, etc.)`;
+Respond ONLY in this exact format (no prefixes, no explanations):
+dialogue|behavior
+
+Where:
+- dialogue: What the avatar says (1-2 sentences max)
+- behavior: ONE word describing emotional state (${templateBehavior}, happy, sad, angry, excited, thoughtful, etc.)
+
+Example response: "The path ahead is shrouded in mystery.|mysterious"`;
 
     const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         max_tokens: 100,
+        temperature: 0.7,
     });
 
     const content = completion.choices[0]?.message?.content || "Hello.|neutral";
-    const [dialogue = "Hello.", behavior = "neutral"] = content.split("|");
 
-    const tx = await contract.updateAvatar(userAddress, avatarIdNum, action, dialogue.trim(), behavior.trim());
+    // Enhanced parsing to handle various AI response formats
+    let dialogue = "Hello.";
+    let behavior = templateBehavior || "neutral";
+
+    // Try to extract dialogue and behavior even if AI doesn't follow format perfectly
+    if (content.includes("|")) {
+        // Standard format: "dialogue|behavior"
+        const parts = content.split("|");
+        dialogue = parts[0].trim();
+        behavior = parts[1].trim();
+    } else if (content.includes("- dialogue:") && content.includes("- behavior:")) {
+        // AI used markdown format: "- dialogue: ... - behavior: ..."
+        const dialogueMatch = content.match(/- dialogue:\s*(.+?)\s*-\s*behavior:/i);
+        const behaviorMatch = content.match(/- behavior:\s*(\w+)/i);
+
+        if (dialogueMatch) dialogue = dialogueMatch[1].trim();
+        if (behaviorMatch) behavior = behaviorMatch[1].trim();
+    } else if (content.includes("dialogue:") && content.includes("behavior:")) {
+        // AI used colon format without dashes
+        const dialogueMatch = content.match(/dialogue:\s*(.+?)\s*behavior:/i);
+        const behaviorMatch = content.match(/behavior:\s*(\w+)/i);
+
+        if (dialogueMatch) dialogue = dialogueMatch[1].trim();
+        if (behaviorMatch) behavior = behaviorMatch[1].trim();
+    } else {
+        // Fallback: treat entire response as dialogue
+        dialogue = content.trim();
+    }
+
+    // Clean up any remaining formatting artifacts
+    dialogue = dialogue.replace(/^["'\-\s]+|["'\-\s]+$/g, '');
+    behavior = behavior.replace(/^["'\-\s]+|["'\-\s]+$/g, '').toLowerCase();
+
+    // Ensure behavior is a single word
+    if (behavior.includes(' ')) {
+        behavior = behavior.split(' ')[0];
+    }
+
+    // Fallback to template behavior if parsing failed
+    if (!behavior || behavior === '') {
+        behavior = templateBehavior || 'neutral';
+    }
+
+    logger.info(`[UPDATE-AVATAR] Parsed - Dialogue: "${dialogue}", Behavior: "${behavior}"`);
+
+    const tx = await contract.updateAvatar(userAddress, avatarIdNum, action, dialogue, behavior);
     const receipt = await tx.wait();
 
     // Revenue split
@@ -557,9 +619,9 @@ Respond with: dialogue|behavior
         addPendingRevenue(creator, creatorShare);
     }
 
-    res.json({
-        dialogue: dialogue.trim(),
-        behavior: behavior.trim(),
+    res.status(200).json({
+        dialogue,
+        behavior,
         transaction: receipt.hash,
         blockNumber: receipt.blockNumber
     });
@@ -674,8 +736,8 @@ app.get("/creator-balance", asyncHandler(async (req, res) => {
 
     res.json({
         address: balance.address,
-        pendingUSDC: ethers.formatEther(balance.pendingWei),
-        totalEarnedUSDC: ethers.formatEther(balance.totalEarnedWei),
+        pendingUSDC: ethers.formatUnits(balance.pendingWei, 6),
+        totalEarnedUSDC: ethers.formatUnits(balance.totalEarnedWei, 6),
         thresholdUSDC: "0.1",
         thresholdReached: balance.pendingWei >= PAYOUT_THRESHOLD_WEI,
         progressPercent: Number((balance.pendingWei * 100n) / PAYOUT_THRESHOLD_WEI).toFixed(2) + "%",
