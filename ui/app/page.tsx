@@ -46,24 +46,13 @@ export default function Home() {
     try {
       console.log("[v0] Creating avatar for template:", templateId)
 
-      const res = await x402CreateAvatarCall(
+      await x402CreateAvatarCall(
         `${API_BASE_URL}/create-avatar`,
         templateId, address
       )
+      console.log("[v0] Avatar created")
 
-      if (!res.ok) {
-        const errorText = await res.json()
-        throw new Error(errorText)
-      }
-
-      const data = await res.json()
-      console.log("[v0] Avatar created:", data)
-
-      if (data.avatarId) {
-        showToast(`Avatar #${data.avatarId} created!`, "success")
-      } else {
-        showToast("Avatar created! Refreshing...", "success")
-      }
+      showToast("Avatar created! Refreshing...", "success")
 
       // Trigger refresh of avatars
       setTimeout(() => {
