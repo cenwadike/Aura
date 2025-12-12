@@ -41,7 +41,7 @@ export async function x402CreateAvatarCall(url: string, templateId: number, addr
 }
 
 
-export async function x402UpdateAvatarCall(url: string, avatarId: number, action: string, address: string) {
+export async function x402UpdateAvatarCall(url: string, avatarId: number, action: string, address: string, creator: string) {
   const client = createThirdwebClient({
     clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID!
   });
@@ -64,6 +64,7 @@ export async function x402UpdateAvatarCall(url: string, avatarId: number, action
         avatarId,
         action,
         userAddress: address,
+        creator,
       }),
     },
   );

@@ -15,10 +15,11 @@ interface InteractModalProps {
   onOpenChange: (open: boolean) => void
   avatarId: number | null
   templateName: string
+  creator: string
   onAvatarUpdate?: () => void // Optional callback to refresh parent component
 }
 
-export function InteractModal({ open, onOpenChange, avatarId, templateName, onAvatarUpdate }: InteractModalProps) {
+export function InteractModal({ open, onOpenChange, avatarId, templateName, creator, onAvatarUpdate }: InteractModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -70,7 +71,7 @@ export function InteractModal({ open, onOpenChange, avatarId, templateName, onAv
     setIsLoading(true)
 
     try {
-      const res = await x402UpdateAvatarCall(`${API_BASE_URL}/update-avatar`, avatarId, userMessage, address)
+      await x402UpdateAvatarCall(`${API_BASE_URL}/update-avatar`, avatarId, userMessage, address, creator)
 
       // Optionally refresh parent component data
       if (onAvatarUpdate) {

@@ -18,6 +18,7 @@ export default function Home() {
   const [interactModalOpen, setInteractModalOpen] = useState(false)
   const [selectedAvatarId, setSelectedAvatarId] = useState<number | null>(null)
   const [selectedTemplateName, setSelectedTemplateName] = useState("")
+  const [selectedCreator, setSelectedCreator] = useState("")
   const [isCreatingAvatar, setIsCreatingAvatar] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
@@ -74,9 +75,10 @@ export default function Home() {
     }
   }
 
-  const handleInteract = (avatarId: number, templateName: string) => {
+  const handleInteract = (avatarId: number, templateName: string, creator: string) => {
     setSelectedAvatarId(avatarId)
     setSelectedTemplateName(templateName)
+    setSelectedCreator(creator)
     setInteractModalOpen(true)
   }
 
@@ -108,6 +110,7 @@ export default function Home() {
         onOpenChange={setInteractModalOpen}
         avatarId={selectedAvatarId}
         templateName={selectedTemplateName}
+        creator={selectedCreator}
       />
       <ToastContainer />
     </main>

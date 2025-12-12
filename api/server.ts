@@ -339,27 +339,18 @@ const createThirdwebPaymentMiddleware = (): express.RequestHandler => {
             logger.info(`[PAYMENT] Settlement result: ${result.status}`);
 
             if (result.status === 200) {
-                try {
-                    const paymentHeader = req.headers["x-payment"];
-                    if (paymentHeader && typeof paymentHeader === "string") {
-                        // Decode base64 if needed
-                        let paymentDataStr = paymentHeader;
-                        if (paymentHeader.startsWith('eyJ')) { // Common base64 JWT/JSON prefix
-                            try {
-                                paymentDataStr = Buffer.from(paymentHeader, 'base64').toString('utf-8');
-                                logger.info(`[PAYMENT] Decoded base64 payment header`);
-                            } catch (decodeErr) {
-                                logger.warn(`[PAYMENT] Base64 decode failed, trying as raw JSON`);
-                            }
-                        }
+                // ✅ FIX: Extract payment amount from price config
+                const priceMatch = routeConfig.price.match(/\$([0-9.]+)/);
+                if (priceMatch) {
+                    const dollarAmount = parseFloat(priceMatch[1]);
+                    // Convert to USDC units (6 decimals)
+                    const usdcAmount = BigInt(Math.floor(dollarAmount * 1_000_000));
+                    (req as any).paymentAmount = usdcAmount;
 
-                        const paymentData = JSON.parse(paymentDataStr);
-                        (req as any).paymentAmount = BigInt(paymentData.wei || paymentData.amount || 0);
-                        logger.info(`[PAYMENT] Payment amount: ${ethers.formatUnits((req as any).paymentAmount, 6)} USDC`);
-                        logger.info(`[PAYMENT] Payment data:`, JSON.stringify(paymentData, null, 2));
-                    }
-                } catch (err) {
-                    logger.warn(`[PAYMENT] Failed to parse payment data:`, err);
+                    logger.info(`[PAYMENT] Payment processed: $${dollarAmount} (${ethers.formatUnits(usdcAmount, 6)} USDC)`);
+                } else {
+                    logger.warn(`[PAYMENT] Could not parse price from: ${routeConfig.price}`);
+                    (req as any).paymentAmount = 0n;
                 }
 
                 return next();
@@ -416,6 +407,7 @@ app.get("/health", (req: Request, res: Response) => {
 
 app.post("/create-avatar", asyncHandler(async (req, res) => {
     const { templateId, userAddress } = req.body;
+    let creator: string | undefined;
 
     logger.info(`[CREATE-AVATAR] START - Template: ${templateId}, User: ${userAddress}`);
 
@@ -441,6 +433,7 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
             logger.error(`[CREATE-AVATAR] Template ${templateIdNum} not found`);
             return res.status(404).json({ error: "Template not found" });
         }
+        creator = template.creator;
         logger.info(`[CREATE-AVATAR] Template verified: ${template.name}`);
     } catch (err: any) {
         logger.error(`[CREATE-AVATAR] Template check failed:`, err);
@@ -485,14 +478,24 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
         logger.warn(`[CREATE-AVATAR] Event parsing failed:`, err);
     }
 
-    // Revenue split
-    const creator: string | undefined = (req as any).creator;
+    // ✅ ENHANCED: Revenue split with detailed logging
     const paidWei: bigint | undefined = (req as any).paymentAmount;
+
+    logger.info(`[CREATE-AVATAR] Revenue check - Creator: ${creator}, Amount: ${paidWei ? ethers.formatUnits(paidWei, 6) : '0'} USDC`);
+
+    if (!creator) {
+        logger.warn(`[CREATE-AVATAR] No creator found for template ${templateIdNum}`);
+    }
+    if (!paidWei || paidWei === 0n) {
+        logger.warn(`[CREATE-AVATAR] No payment amount recorded`);
+    }
 
     if (creator && paidWei && paidWei > 0n) {
         const creatorShare = (paidWei * 70n) / 100n;
         addPendingRevenue(creator, creatorShare);
-        logger.info(`[CREATE-AVATAR] Revenue split: ${ethers.formatUnits(creatorShare, 6)} USDC to creator`);
+        logger.info(`[CREATE-AVATAR] ✅ Revenue split: ${ethers.formatUnits(creatorShare, 6)} USDC to creator ${creator.slice(0, 10)}...`);
+    } else {
+        logger.warn(`[CREATE-AVATAR] ⚠️ Revenue NOT recorded - Creator: ${creator || 'none'}, Amount: ${paidWei ? ethers.formatUnits(paidWei, 6) : '0'} USDC`);
     }
 
     const response = {
@@ -510,6 +513,8 @@ app.post("/create-avatar", asyncHandler(async (req, res) => {
 
 app.post("/update-avatar", asyncHandler(async (req, res) => {
     const { avatarId, action, userAddress } = req.body;
+
+    let creator: string | undefined;
 
     if (avatarId === undefined || !action) {
         return res.status(400).json({ error: "avatarId and action required" });
@@ -537,9 +542,9 @@ app.post("/update-avatar", asyncHandler(async (req, res) => {
     try {
         const template = await contract.getTemplate(templateId);
         templateBehavior = template.baseBehavior;
+        creator = template.creator;
     } catch { }
 
-    // Improved prompt with clearer instructions
     const prompt = `You are an AI avatar with personality: ${templateBehavior}
 Memory: ${memoryData || "none"}
 Player action: ${action}
@@ -562,45 +567,34 @@ Example response: "The path ahead is shrouded in mystery.|mysterious"`;
 
     const content = completion.choices[0]?.message?.content || "Hello.|neutral";
 
-    // Enhanced parsing to handle various AI response formats
     let dialogue = "Hello.";
     let behavior = templateBehavior || "neutral";
 
-    // Try to extract dialogue and behavior even if AI doesn't follow format perfectly
     if (content.includes("|")) {
-        // Standard format: "dialogue|behavior"
         const parts = content.split("|");
         dialogue = parts[0].trim();
         behavior = parts[1].trim();
     } else if (content.includes("- dialogue:") && content.includes("- behavior:")) {
-        // AI used markdown format: "- dialogue: ... - behavior: ..."
         const dialogueMatch = content.match(/- dialogue:\s*(.+?)\s*-\s*behavior:/i);
         const behaviorMatch = content.match(/- behavior:\s*(\w+)/i);
-
         if (dialogueMatch) dialogue = dialogueMatch[1].trim();
         if (behaviorMatch) behavior = behaviorMatch[1].trim();
     } else if (content.includes("dialogue:") && content.includes("behavior:")) {
-        // AI used colon format without dashes
         const dialogueMatch = content.match(/dialogue:\s*(.+?)\s*behavior:/i);
         const behaviorMatch = content.match(/behavior:\s*(\w+)/i);
-
         if (dialogueMatch) dialogue = dialogueMatch[1].trim();
         if (behaviorMatch) behavior = behaviorMatch[1].trim();
     } else {
-        // Fallback: treat entire response as dialogue
         dialogue = content.trim();
     }
 
-    // Clean up any remaining formatting artifacts
     dialogue = dialogue.replace(/^["'\-\s]+|["'\-\s]+$/g, '');
     behavior = behavior.replace(/^["'\-\s]+|["'\-\s]+$/g, '').toLowerCase();
 
-    // Ensure behavior is a single word
     if (behavior.includes(' ')) {
         behavior = behavior.split(' ')[0];
     }
 
-    // Fallback to template behavior if parsing failed
     if (!behavior || behavior === '') {
         behavior = templateBehavior || 'neutral';
     }
@@ -610,13 +604,17 @@ Example response: "The path ahead is shrouded in mystery.|mysterious"`;
     const tx = await contract.updateAvatar(userAddress, avatarIdNum, action, dialogue, behavior);
     const receipt = await tx.wait();
 
-    // Revenue split
-    const creator: string | undefined = (req as any).creator;
+    // ✅ ENHANCED: Revenue split with logging
     const paidUSDC: bigint | undefined = (req as any).paymentAmount;
+
+    logger.info(`[UPDATE-AVATAR] Revenue check - Creator: ${creator}, Amount: ${paidUSDC ? ethers.formatUnits(paidUSDC, 6) : '0'} USDC`);
 
     if (creator && paidUSDC && paidUSDC > 0n) {
         const creatorShare = (paidUSDC * 70n) / 100n;
         addPendingRevenue(creator, creatorShare);
+        logger.info(`[UPDATE-AVATAR] ✅ Revenue split: ${ethers.formatUnits(creatorShare, 6)} USDC to creator`);
+    } else {
+        logger.warn(`[UPDATE-AVATAR] ⚠️ Revenue NOT recorded - Creator: ${creator || 'none'}, Amount: ${paidUSDC ? ethers.formatUnits(paidUSDC, 6) : '0'} USDC`);
     }
 
     res.status(200).json({

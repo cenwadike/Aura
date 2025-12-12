@@ -4,7 +4,7 @@ import type { Avatar } from "@/types"
 
 interface AvatarCardProps {
   avatar: Avatar
-  onInteract: (avatarId: number, templateName: string) => void
+  onInteract: (avatarId: number, templateName: string, creator: string) => void
 }
 
 export function AvatarCard({ avatar, onInteract }: AvatarCardProps) {
@@ -39,7 +39,7 @@ export function AvatarCard({ avatar, onInteract }: AvatarCardProps) {
       )}
 
       <button
-        onClick={() => onInteract(avatar.id, avatar.templateName)}
+        onClick={() => onInteract(avatar.id, avatar.templateName, avatar.creator)}
         className="w-full px-4 py-2 rounded-md font-semibold text-xs transition-all bg-gradient-to-r from-violet-500 to-pink-500 text-white hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(139,92,246,0.4)]"
       >
         Interact ($0.001/msg)

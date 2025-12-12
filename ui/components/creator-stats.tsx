@@ -1,7 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
-import { DollarSign, TrendingUp, Clock } from "lucide-react"
+import { DollarSign, TrendingUp, Clock, RefreshCw } from "lucide-react"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -19,44 +17,56 @@ interface CreatorBalance {
     lastPayout: string | null
 }
 
-export function CreatorStats({ address }: CreatorStatsProps) {
+export default function CreatorStats({ address }: CreatorStatsProps) {
     const [stats, setStats] = useState<CreatorBalance | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isRefreshing, setIsRefreshing] = useState(false)
+
+    const fetchStats = async (showRefreshingState = false) => {
+        if (showRefreshingState) {
+            setIsRefreshing(true)
+        } else {
+            setIsLoading(true)
+        }
+        setError(null)
+
+        try {
+            console.log(`Fetching creator stats for: ${address}`)
+            const res = await fetch(`${API_BASE_URL}/creator-balance?creator=${address}`)
+
+            if (!res.ok) {
+                if (res.status === 404) {
+                    // No earnings yet - this is normal for new creators
+                    console.log("No earnings yet for creator:", address)
+                    setStats(null)
+                    setError(null)
+                    return
+                }
+                throw new Error(`HTTP ${res.status}: Failed to fetch creator stats`)
+            }
+
+            const data = await res.json()
+            console.log("Creator stats loaded:", data)
+            setStats(data)
+        } catch (err) {
+            console.error("Error fetching creator stats:", err)
+            setError(err instanceof Error ? err.message : "Unable to load stats")
+        } finally {
+            setIsLoading(false)
+            setIsRefreshing(false)
+        }
+    }
 
     useEffect(() => {
-        const fetchStats = async () => {
-            setIsLoading(true)
-            setError(null)
-
-            try {
-                // Fixed fetch syntax - use backticks correctly
-                const res = await fetch(`${API_BASE_URL}/creator-balance?creator=${address}`)
-
-                if (!res.ok) {
-                    if (res.status === 404) {
-                        // No earnings yet - this is normal for new creators
-                        setStats(null)
-                        setError(null)
-                        return
-                    }
-                    throw new Error("Failed to fetch creator stats")
-                }
-
-                const data = await res.json()
-                setStats(data)
-            } catch (err) {
-                console.error("Error fetching creator stats:", err)
-                setError("Unable to load stats")
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
         if (address) {
             fetchStats()
         }
     }, [address])
+
+    const handleRefresh = () => {
+        fetchStats(true)
+    }
 
     if (isLoading) {
         return (
@@ -77,7 +87,17 @@ export function CreatorStats({ address }: CreatorStatsProps) {
     if (error) {
         return (
             <div className="bg-gray-900/50 border border-red-900/50 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-red-400 mb-2">Error Loading Stats</h3>
+                <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-red-400">Error Loading Stats</h3>
+                    <button
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                        title="Retry"
+                    >
+                        <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
                 <p className="text-gray-400 text-sm">{error}</p>
             </div>
         )
@@ -86,12 +106,25 @@ export function CreatorStats({ address }: CreatorStatsProps) {
     if (!stats) {
         return (
             <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Creator Earnings</h3>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white">Creator Earnings</h3>
+                    <button
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className="p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                        title="Refresh"
+                    >
+                        <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
                 <div className="text-center py-8">
                     <DollarSign className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">No earnings yet</p>
+                    <p className="text-gray-400 text-sm font-medium">No earnings yet</p>
                     <p className="text-gray-500 text-xs mt-2">
                         Start earning when users interact with your templates
+                    </p>
+                    <p className="text-gray-600 text-xs mt-3">
+                        You earn 70% of revenue from your templates
                     </p>
                 </div>
             </div>
@@ -102,10 +135,20 @@ export function CreatorStats({ address }: CreatorStatsProps) {
 
     return (
         <div className="bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800 rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-violet-400" />
-                Creator Earnings
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-violet-400" />
+                    Creator Earnings
+                </h3>
+                <button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                    title="Refresh earnings"
+                >
+                    <RefreshCw className={`w-4 h-4 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
+            </div>
 
             <div className="space-y-6">
                 {/* Pending Balance */}

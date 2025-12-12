@@ -7,6 +7,7 @@ export interface Template {
 }
 
 export interface Avatar {
+  creator: string
   id: number
   sessionId: number
   templateId: number

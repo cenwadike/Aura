@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useAccount } from "wagmi"
 import { Header } from "@/components/header"
-import { CreatorStats } from "@/components/creator-stats"
+import CreatorStats from "@/components/creator-stats"
 import { CreatorTemplates } from "@/components/creator-templates"
 import { CreateTemplateModal } from "@/components/create-template-modal"
 import { ToastContainer } from "@/components/toast-container"

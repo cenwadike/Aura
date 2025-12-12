@@ -124,7 +124,7 @@ import type { Avatar } from "@/types"
 import { Loader2 } from "lucide-react"
 
 interface MyAvatarsSectionProps {
-  onInteract: (avatarId: number, templateName: string) => void
+  onInteract: (avatarId: number, templateName: string, creator: string) => void
   refreshTrigger: number
 }
 
@@ -206,6 +206,7 @@ export function MyAvatarsSection({ onInteract, refreshTrigger }: MyAvatarsSectio
           console.log(`[MyAvatars] Template for avatar ${id.toString()}:`, template.name)
 
           loadedAvatars.push({
+            creator: state.creator,
             id: Number(state.avatarId),
             sessionId: Number(state.sessionId),
             templateId: Number(state.templateId),
