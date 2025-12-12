@@ -5,7 +5,7 @@ import { createWallet } from "thirdweb/wallets";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
-export async function x402CreateAvatarCall(url: string, templateId: number, address: string) {
+export async function x402CreateAvatarCall(url: string, templateId: number, address: string, creator: string) {
   const client = createThirdwebClient({
     clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID!,
   });
@@ -27,6 +27,7 @@ export async function x402CreateAvatarCall(url: string, templateId: number, addr
       body: JSON.stringify({
         templateId,
         userAddress: address,
+        creator
       }),
     },
   );

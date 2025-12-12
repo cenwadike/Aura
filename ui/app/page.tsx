@@ -34,7 +34,7 @@ export default function Home() {
     setCreateModalOpen(true)
   }
 
-  const handleCreateAvatar = async (templateId: number, templateName: string) => {
+  const handleCreateAvatar = async (templateId: number, creator: string) => {
     if (!isConnected || !address || !walletClient) {
       showToast("Connect wallet first", "error")
       return
@@ -48,7 +48,7 @@ export default function Home() {
 
       await x402CreateAvatarCall(
         `${API_BASE_URL}/create-avatar`,
-        templateId, address
+        templateId, address, creator
       )
       console.log("[v0] Avatar created")
 

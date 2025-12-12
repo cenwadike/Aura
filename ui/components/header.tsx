@@ -4,7 +4,9 @@ import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi"
 import { injected } from "wagmi/connectors"
 import { avalancheFuji } from "@/lib/wagmi"
 import { useAuraToast } from "@/hooks/use-aura-toast"
-import { Zap, ExternalLink } from "lucide-react"
+import { Zap, ExternalLink, LayoutDashboard } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 export function Header() {
   const { address, isConnected, chain } = useAccount()
@@ -12,6 +14,7 @@ export function Header() {
   const { disconnect } = useDisconnect()
   const { switchChain } = useSwitchChain()
   const { showToast } = useAuraToast()
+  const pathname = usePathname()
 
   const handleConnect = async () => {
     try {
@@ -50,12 +53,13 @@ export function Header() {
   const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ""
 
   const isWrongNetwork = isConnected && chain?.id !== avalancheFuji.id
+  const isCreatorPage = pathname === "/creator"
 
   return (
     <header className="border-b border-gray-800 bg-[#0a0a0f]/95 backdrop-blur-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-5">
         <div className="flex justify-between items-center py-4">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 bg-gradient-to-br from-violet-400 to-pink-500 rounded-lg flex items-center justify-center">
               <Zap className="w-6 h-6 text-white" />
             </div>
@@ -63,9 +67,19 @@ export function Header() {
               <h1 className="text-xl font-bold text-white">Aura AI</h1>
               <p className="text-xs text-gray-400">Web3 AI Avatars</p>
             </div>
-          </div>
+          </Link>
 
           <div className="flex gap-3 items-center">
+            {isConnected && !isCreatorPage && (
+              <Link
+                href="/creator"
+                className="px-5 py-2.5 rounded-lg font-semibold text-sm transition-all bg-gray-800 text-gray-200 border border-gray-700 hover:bg-gray-700 flex items-center gap-2"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Link>
+            )}
+
             {isWrongNetwork ? (
               <button
                 onClick={handleSwitchChain}

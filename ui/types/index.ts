@@ -31,3 +31,23 @@ export interface X402PaymentDetails {
   recipient: string
   purpose: string
 }
+
+export interface CreatorStats {
+  address: string
+  pendingUSDC: string
+  totalEarnedUSDC: string
+  thresholdUSDC: string
+  thresholdReached: boolean
+  progressPercent: string
+  lastPayout: string | null
+}
+
+export interface TemplateWithStats extends Template {
+  usageCount?: number
+  revenue?: string
+}
+
+export interface CreatorTemplatesProps {
+  address: string
+  refreshTrigger?: number
+}
